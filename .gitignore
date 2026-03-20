@@ -19,7 +19,7 @@ logs
 .idea
 
 # SQLite DB
-sqlite.db
+#sqlite.db
 
 # Local env files
 .env
