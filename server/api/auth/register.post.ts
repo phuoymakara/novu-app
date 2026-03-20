@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const existing = db.select().from(users).where(eq(users.email, email)).get()
+  console.log("====User Register===",{existing})
   if (existing) {
     throw createError({ statusCode: 409, message: 'Email already registered' })
   }
