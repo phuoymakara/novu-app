@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Email and password are required' })
   }
 
+  const allUsers = db.select().from(users).all()
+  console.log("====All Users===", allUsers);
   const user = db.select().from(users).where(eq(users.email, email)).get()
   if (!user || user.password !== hash(password)) {
     throw createError({ statusCode: 401, message: 'Invalid credentials' })
