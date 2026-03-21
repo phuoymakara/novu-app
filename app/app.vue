@@ -14,6 +14,9 @@ const SITE_DESCRIPTION = "Daily OS";
 
 useHead({
   title: SITE_NAME,
+  meta: [
+    { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
+  ],
 });
 useSeoMeta({
   title: SITE_NAME,
