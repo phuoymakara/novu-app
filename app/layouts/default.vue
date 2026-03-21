@@ -176,6 +176,7 @@ const userMenuItems = computed(() => [
               variant="ghost"
               size="sm"
               color="neutral"
+              class="hidden"
               @click="sidebarOpen = true"
             />
             <div class="flex items-center gap-2 flex-1">
