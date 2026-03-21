@@ -45,6 +45,18 @@ async function login() {
         <UButton type="submit" class="w-full justify-center" :loading="loading">
           Sign in
         </UButton>
+        <div class="relative flex items-center justify-center">
+          <div class="border-t border-gray-200 w-full" />
+          <span class="px-2 text-xs text-muted-foreground bg-background absolute">or</span>
+        </div>
+        <UButton
+          variant="outline"
+          class="w-full justify-center gap-2"
+          @click="navigateTo('/api/auth/google', { external: true })"
+        >
+          <UIcon name="i-simple-icons-google" class="text-base" />
+          Continue with Google
+        </UButton>
       </UForm>
 
       <template #footer>
