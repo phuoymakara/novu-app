@@ -111,7 +111,6 @@ const userMenuItems = computed(() => [
         <!-- Sidebar -->
         <aside
           ref="sidebarRef"
-          v-show="sidebarOpen || true"
           class="fixed lg:static inset-y-0 left-0 z-40 w-56 flex-shrink-0 border-r border-gray-200 bg-background flex flex-col transition-transform duration-300"
           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
         >

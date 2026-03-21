@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { resolve } from 'path'
 import * as schema from './schema'
 
-const sqlite = new Database('sqlite.db')
+const sqlite = new Database(resolve(process.cwd(), 'sqlite.db'))
 
 // Enable WAL mode for better performance
 sqlite.pragma('journal_mode = WAL')

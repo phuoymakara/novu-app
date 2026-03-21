@@ -5,8 +5,11 @@ const { user } = useUserSession()
 const { data: tasks } = await useFetch('/api/tasks')
 const { data: habits } = await useFetch('/api/habits')
 
-const hour = new Date().getHours()
-const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+const now = useNow({ interval: 60000 })
+const greeting = computed(() => {
+  const hour = now.value.getHours()
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+})
 const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
 const stats = computed(() => {
