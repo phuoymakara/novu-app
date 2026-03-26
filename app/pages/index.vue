@@ -29,7 +29,7 @@ const habitProgress = computed(() => {
 
 const recentTasks = computed(() => (tasks.value ?? []).slice(0, 5))
 
-const priorityColor = (p: string) => p === 'high' ? 'error' : p === 'medium' ? 'warning' : 'neutral'
+const priorityDot = (p: string | null) => p === 'high' ? 'bg-red-400' : p === 'medium' ? 'bg-amber-400' : 'bg-neutral-300 dark:bg-neutral-600'
 </script>
 
 <template>
@@ -85,47 +85,42 @@ const priorityColor = (p: string) => p === 'high' ? 'error' : p === 'medium' ? '
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Recent Tasks -->
       <div class="lg:col-span-2">
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h2 class="font-semibold">Recent Tasks</h2>
-              <UButton to="/tasks" variant="ghost" size="xs" trailing-icon="i-lucide-arrow-right" color="neutral">
-                View all
-              </UButton>
-            </div>
-          </template>
+        <div class="bg-background border border-gray-200 rounded-2xl overflow-hidden">
+          <!-- Header -->
+          <div class="px-5 py-4 flex items-center justify-between">
+            <span class="text-sm font-semibold">Recent Tasks</span>
+            <UButton to="/tasks" variant="ghost" size="xs" trailing-icon="i-lucide-arrow-right" color="neutral">
+              View all
+            </UButton>
+          </div>
 
-          <div v-if="recentTasks.length" class="divide-y divide-border -mx-4 -my-2">
+          <!-- Rows -->
+          <div v-if="recentTasks.length" class="px-3 pb-3 space-y-0.5">
             <div
               v-for="task in recentTasks"
               :key="task.id"
-              class="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-colors"
             >
-              <div
-                class="w-1.5 h-8 rounded-full flex-shrink-0"
-                :class="task.priority === 'high' ? 'bg-error' : task.priority === 'medium' ? 'bg-warning' : 'bg-muted-foreground/30'"
-              />
               <UIcon
-                :name="task.status === 'done' ? 'i-lucide-check-circle-2' : 'i-lucide-circle-dashed'"
-                :class="task.status === 'done' ? 'text-success' : 'text-muted-foreground'"
-                class="text-lg flex-shrink-0"
+                :name="task.status === 'done' ? 'i-lucide-circle-check-big' : 'i-lucide-circle-dashed'"
+                class="text-base shrink-0"
+                :class="task.status === 'done' ? 'text-success' : 'text-muted-foreground/30'"
               />
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="priorityDot(task.priority)" />
               <span
                 class="flex-1 text-sm truncate"
-                :class="task.status === 'done' ? 'line-through text-muted-foreground' : ''"
+                :class="task.status === 'done' ? 'line-through text-muted-foreground/50' : ''"
               >{{ task.title }}</span>
-              <UBadge :color="priorityColor(task.priority)" variant="soft" size="sm">
-                {{ task.priority }}
-              </UBadge>
+              <span v-if="task.dueDate" class="text-[11px] text-muted-foreground/50 shrink-0">{{ task.dueDate }}</span>
             </div>
           </div>
 
-          <div v-else class="py-10 text-center text-muted-foreground">
-            <UIcon name="i-lucide-inbox" class="text-4xl mb-2" />
-            <p class="text-sm">No tasks yet.</p>
-            <UButton to="/tasks" size="sm" variant="ghost" class="mt-2">Add your first task</UButton>
+          <div v-else class="py-10 text-center text-muted-foreground/50">
+            <UIcon name="i-lucide-inbox" class="text-3xl mb-2" />
+            <p class="text-xs">No tasks yet</p>
+            <UButton to="/tasks" size="xs" variant="ghost" class="mt-2">Add your first task</UButton>
           </div>
-        </UCard>
+        </div>
       </div>
 
       <!-- Right column -->

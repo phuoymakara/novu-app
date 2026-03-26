@@ -6,8 +6,8 @@ import * as schema from './schema'
 const dbPath = process.env.DATABASE_PATH || resolve(process.cwd(), 'sqlite.db')
 const sqlite = new Database(dbPath)
 
-// Enable WAL mode for better performance
 sqlite.pragma('journal_mode = WAL')
+sqlite.pragma('foreign_keys = ON')
 
 export const db = drizzle(sqlite, { schema })
 
@@ -29,6 +29,7 @@ sqlite.exec(`
     priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high')),
     status TEXT DEFAULT 'todo' CHECK(status IN ('todo', 'in_progress', 'done')),
     due_date TEXT,
+    position INTEGER DEFAULT 0,
     created_at INTEGER,
     updated_at INTEGER
   );
@@ -59,3 +60,6 @@ sqlite.exec(`
     updated_at INTEGER
   );
 `)
+
+// Add position column to existing DBs (no-op if already exists)
+try { sqlite.exec('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0') } catch {}

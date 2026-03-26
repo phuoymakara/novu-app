@@ -125,7 +125,7 @@ const savedLabel = computed(() => {
         </UButton>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
+      <div class="flex-1 overflow-y-auto p-2 space-y-0.5" style="scrollbar-width: none;">
         <button
           v-for="note in notes"
           :key="note.id"

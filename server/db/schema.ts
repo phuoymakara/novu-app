@@ -16,6 +16,7 @@ export const tasks = sqliteTable('tasks', {
   priority: text('priority', { enum: ['low', 'medium', 'high'] }).default('medium'),
   status: text('status', { enum: ['todo', 'in_progress', 'done'] }).default('todo'),
   dueDate: text('due_date'),
+  position: integer('position').default(0),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 })

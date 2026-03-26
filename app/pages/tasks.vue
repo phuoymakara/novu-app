@@ -12,6 +12,8 @@ const loading = ref(false)
 
 const draggingTask = ref<any>(null)
 const dragOverColumn = ref<string | null>(null)
+const dragOverTaskId = ref<number | null>(null)
+const dragOverHalf = ref<'top' | 'bottom'>('top')
 
 const columns = [
   { key: 'todo', label: 'To Do', icon: 'i-lucide-circle', color: 'text-neutral-400' },
@@ -25,9 +27,11 @@ const tasksByStatus = computed(() => ({
   done: (tasks.value ?? []).filter(t => t.status === 'done'),
 }))
 
+const today = new Date().toISOString().slice(0, 10)
+
 function openCreate() {
   editingTask.value = null
-  Object.assign(form, { title: '', description: '', priority: 'medium', dueDate: '' })
+  Object.assign(form, { title: '', description: '', priority: 'medium', dueDate: today })
   showModal.value = true
 }
 
@@ -76,48 +80,109 @@ async function save() {
   }
 }
 
-function onDragStart(task: any) {
+function onDragStart(event: DragEvent, task: any) {
   draggingTask.value = task
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('taskId', String(task.id))
 }
 
 function onDragEnd() {
   draggingTask.value = null
   dragOverColumn.value = null
+  dragOverTaskId.value = null
 }
 
+// Column background drop (cross-column, appends to end)
 async function onDrop(status: string) {
   const task = draggingTask.value
   draggingTask.value = null
   dragOverColumn.value = null
+  dragOverTaskId.value = null
 
   if (!task || task.status === status) return
 
-  // Optimistic update
   const local = tasks.value?.find(t => t.id === task.id)
   if (local) local.status = status
 
   try {
     await $fetch(`/api/tasks/${task.id}`, { method: 'PATCH', body: { status } })
-    await refresh()
   }
   catch {
     toast.add({ title: 'Failed to move task', color: 'error' })
-    await refresh()
   }
+  await refresh()
 }
 
-const priorityColor = (p: string) => p === 'high' ? 'error' : p === 'medium' ? 'warning' : 'neutral'
-const priorityBorder = (p: string) => p === 'high'
-  ? 'border-l-4 border-l-error'
-  : p === 'medium'
-    ? 'border-l-4 border-l-warning'
-    : 'border-l-4 border-l-neutral-200 dark:border-l-neutral-700'
+// Card-level drag: track which half of the card we're hovering (for indicator)
+function onDragOverCard(e: DragEvent, task: any) {
+  dragOverTaskId.value = task.id
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  dragOverHalf.value = e.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom'
+}
+
+// Card drop: reorder within same column, or cross-column
+async function onDropOnCard(event: DragEvent, targetTask: any, status: string) {
+  // Recalculate half from actual drop position (don't rely on potentially stale ref)
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const half: 'top' | 'bottom' = event.clientY < rect.top + rect.height / 2 ? 'top' : 'bottom'
+
+  // Use dataTransfer as reliable fallback if ref was cleared
+  const taskId = Number(event.dataTransfer?.getData('taskId'))
+  const task = draggingTask.value ?? tasks.value?.find(t => t.id === taskId)
+
+  draggingTask.value = null
+  dragOverColumn.value = null
+  dragOverTaskId.value = null
+
+  if (!task || !tasks.value) return
+
+  // Cross-column: update status, append to end
+  if (task.status !== status) {
+    const local = tasks.value.find(t => t.id === task.id)
+    if (local) local.status = status
+    try {
+      await $fetch(`/api/tasks/${task.id}`, { method: 'PATCH', body: { status } })
+    }
+    catch {
+      toast.add({ title: 'Failed to move task', color: 'error' })
+    }
+    await refresh()
+    return
+  }
+
+  // Same column reorder
+  if (task.id === targetTask.id) return
+
+  const from = tasks.value.findIndex(t => t.id === task.id)
+  if (from === -1) return
+  tasks.value.splice(from, 1)
+  const to = tasks.value.findIndex(t => t.id === targetTask.id)
+  if (to === -1) { await refresh(); return }
+  tasks.value.splice(half === 'bottom' ? to + 1 : to, 0, task)
+
+  const colIds = tasks.value.filter(t => t.status === status).map(t => t.id)
+  try {
+    await $fetch('/api/tasks/reorder', { method: 'PATCH', body: { ids: colIds } })
+  }
+  catch {
+    toast.add({ title: 'Failed to reorder', color: 'error' })
+  }
+  await refresh()
+}
+
+const priorityDot = (p: string) => p === 'high' ? 'bg-red-400' : p === 'medium' ? 'bg-amber-400' : 'bg-neutral-300 dark:bg-neutral-600'
+
+const priorities = [
+  { value: 'high', label: 'High', bg: 'bg-red-400', ring: 'ring-red-300' },
+  { value: 'medium', label: 'Medium', bg: 'bg-amber-400', ring: 'ring-amber-300' },
+  { value: 'low', label: 'Low', bg: 'bg-neutral-300 dark:bg-neutral-500', ring: 'ring-neutral-300' },
+]
 </script>
 
 <template>
-  <div class="h-screen flex flex-col overflow-hidden">
+  <div class="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
     <!-- Header -->
-    <div class="px-4 lg:px-8 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+    <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">Tasks</h1>
         <p class="text-sm text-muted-foreground mt-0.5">
@@ -128,8 +193,8 @@ const priorityBorder = (p: string) => p === 'high'
     </div>
 
     <!-- Kanban board -->
-    <div class="flex-1 overflow-x-auto overflow-y-hidden p-4 lg:p-6">
-      <div class="flex gap-4 h-full min-w-[680px]">
+    <div class="overflow-x-auto">
+      <div class="flex gap-4 min-w-[640px]" style="min-height: 480px">
         <div
           v-for="col in columns"
           :key="col.key"
@@ -137,7 +202,7 @@ const priorityBorder = (p: string) => p === 'high'
           :class="dragOverColumn === col.key
             ? 'bg-primary/5 ring-2 ring-primary/25'
             : 'bg-muted/50'"
-          @dragover.prevent="dragOverColumn = col.key"
+          @dragover.prevent="dragOverColumn = col.key; dragOverTaskId = null"
           @dragleave="dragOverColumn = null"
           @drop.prevent="onDrop(col.key)"
         >
@@ -151,40 +216,47 @@ const priorityBorder = (p: string) => p === 'high'
           </div>
 
           <!-- Task cards -->
-          <div class="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+          <div class="flex-1 overflow-y-auto px-2 pb-2 space-y-1.5">
             <div
               v-for="task in tasksByStatus[col.key as keyof typeof tasksByStatus]"
               :key="task.id"
               draggable="true"
-              class="bg-card rounded-lg p-3 shadow-sm select-none cursor-grab active:cursor-grabbing transition-all"
+              class="group bg-background border border-gray-200 rounded-xl px-3.5 py-3 select-none cursor-grab active:cursor-grabbing transition-all duration-150"
               :class="[
-                priorityBorder(task.priority),
-                draggingTask?.id === task.id ? 'opacity-40 scale-[0.97]' : 'hover:shadow-md',
+                draggingTask?.id === task.id ? 'opacity-40 scale-[0.97]' : 'hover:border-border hover:shadow-sm',
+                dragOverTaskId === task.id && dragOverHalf === 'top' ? 'border-t-primary! border-t-2' : '',
+                dragOverTaskId === task.id && dragOverHalf === 'bottom' ? 'border-b-primary! border-b-2' : '',
               ]"
-              @dragstart="onDragStart(task)"
+              @dragstart="onDragStart($event, task)"
               @dragend="onDragEnd"
+              @dragover.prevent.stop="onDragOverCard($event, task)"
+              @drop.prevent.stop="onDropOnCard($event, task, col.key)"
             >
-              <p
-                class="text-sm font-medium leading-snug"
-                :class="task.status === 'done' ? 'line-through text-muted-foreground' : ''"
-              >
-                {{ task.title }}
-              </p>
-              <p v-if="task.description" class="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                {{ task.description }}
-              </p>
-              <div class="flex items-center gap-1.5 mt-2">
-                <UBadge :color="priorityColor(task.priority)" variant="soft" size="xs">
-                  {{ task.priority }}
-                </UBadge>
-                <span v-if="task.dueDate" class="text-xs text-muted-foreground flex items-center gap-1">
-                  <UIcon name="i-lucide-calendar" class="text-xs" />
-                  {{ task.dueDate }}
-                </span>
-                <div class="ml-auto flex gap-0.5">
+              <!-- Title row -->
+              <div class="flex items-start gap-2">
+                <span class="mt-1.25 w-1.5 h-1.5 rounded-full shrink-0" :class="priorityDot(task.priority ?? 'medium')" />
+                <p
+                  class="text-sm font-medium leading-snug flex-1 min-w-0"
+                  :class="task.status === 'done' ? 'line-through text-muted-foreground' : ''"
+                >
+                  {{ task.title }}
+                </p>
+                <!-- Actions: visible on hover only -->
+                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 -mt-0.5 -mr-1">
                   <UButton icon="i-lucide-pencil" variant="ghost" size="xs" color="neutral" @click.stop="openEdit(task)" />
                   <UButton icon="i-lucide-trash-2" variant="ghost" size="xs" color="error" @click.stop="confirmDelete(task)" />
                 </div>
+              </div>
+
+              <p v-if="task.description" class="text-xs text-muted-foreground mt-1.5 ml-3.5 line-clamp-2 leading-relaxed">
+                {{ task.description }}
+              </p>
+
+              <div v-if="task.dueDate" class="mt-2 ml-3.5">
+                <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                  <UIcon name="i-lucide-calendar" class="text-xs" />
+                  {{ task.dueDate }}
+                </span>
               </div>
             </div>
 
@@ -202,34 +274,66 @@ const priorityBorder = (p: string) => p === 'high'
     </div>
 
     <!-- Create / Edit Modal -->
-    <UModal v-model:open="showModal" :title="editingTask ? 'Edit Task' : 'New Task'">
+    <UModal v-model:open="showModal" :ui="{ header: 'border-b-0 pb-0', body: 'pt-2' }">
+      <template #header>
+        <span class="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+          {{ editingTask ? 'Edit Task' : 'New Task' }}
+        </span>
+      </template>
+
       <template #body>
-        <UForm :state="form" class="space-y-4" @submit="save">
-          <UFormField label="Title" name="title" required>
-            <UInput v-model="form.title" placeholder="What needs to be done?" class="w-full" autofocus />
-          </UFormField>
-          <UFormField label="Description" name="description">
-            <UTextarea v-model="form.description" placeholder="Add details (optional)" class="w-full" :rows="3" />
-          </UFormField>
-          <div class="grid grid-cols-2 gap-4">
-            <UFormField label="Priority" name="priority">
-              <USelect
-                v-model="form.priority"
-                :items="[
-                  { label: '🔴 High', value: 'high' },
-                  { label: '🟡 Medium', value: 'medium' },
-                  { label: '🟢 Low', value: 'low' },
-                ]"
-                class="w-full"
-              />
-            </UFormField>
-            <UFormField label="Due Date" name="dueDate">
-              <AppDatePicker v-model="form.dueDate" placeholder="Pick due date" class="w-full" />
-            </UFormField>
+        <UForm :state="form" @submit="save">
+          <!-- Title -->
+          <input
+            v-model="form.title"
+            placeholder="What needs to be done?"
+            autofocus
+            class="w-full bg-transparent outline-none text-lg font-semibold placeholder:text-muted-foreground/30 text-gray-900 dark:text-gray-100 mb-2"
+          />
+
+          <!-- Description -->
+           <USeparator type="dashed" class="my-1"/>
+          <textarea
+            v-model="form.description"
+            placeholder="Add a note..."
+            rows="3"
+            class="w-full bg-transparent outline-none resize-none text-sm text-muted-foreground placeholder:text-muted-foreground/30 leading-relaxed mb-4"
+          />
+
+          <!-- Divider -->
+          <div class="border-t border-gray-100 dark:border-gray-800 mb-4" />
+
+          <!-- Meta row -->
+          <div class="flex items-center gap-4 mb-5">
+            <!-- Priority dots -->
+            <div class="flex items-center gap-1.5">
+              <button
+                v-for="p in priorities"
+                :key="p.value"
+                type="button"
+                :title="p.label"
+                class="w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150"
+                :class="form.priority === p.value
+                  ? 'ring-2 ring-offset-2 ' + p.ring
+                  : 'opacity-30 hover:opacity-60'"
+                @click="form.priority = p.value"
+              >
+                <span class="w-2.5 h-2.5 rounded-full" :class="p.bg" />
+              </button>
+            </div>
+
+            <div class="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+
+            <!-- Due date -->
+            <AppDatePicker v-model="form.dueDate" placeholder="Due date" class="flex-1" />
           </div>
-          <div class="flex justify-end gap-3 pt-2 border-t border-gray-200">
-            <UButton variant="ghost" color="neutral" @click="showModal = false">Cancel</UButton>
-            <UButton type="submit" :loading="loading">{{ editingTask ? 'Save changes' : 'Create task' }}</UButton>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-2">
+            <UButton variant="ghost" color="neutral" size="sm" @click="showModal = false">Cancel</UButton>
+            <UButton type="submit" size="sm" :loading="loading">
+              {{ editingTask ? 'Save' : 'Create' }}
+            </UButton>
           </div>
         </UForm>
       </template>
