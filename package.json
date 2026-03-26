@@ -3,7 +3,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build && cp sqlite.db .output/server/sqlite.db",
+    "prebuild": "node scripts/backup-db.js",
+    "build": "nuxt build",
+    "rollback": "node scripts/rollback-db.js",
     "dev": "nuxt dev",
     "start": "nuxt start -p 5001",
     "generate": "nuxt generate",

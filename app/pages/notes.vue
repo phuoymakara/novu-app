@@ -19,6 +19,7 @@ const form = reactive({ title: '', content: '', date: '' })
 const today = new Date().toISOString().slice(0, 10)
 
 function openCreate() {
+  selectedNote.value = null
   Object.assign(form, { title: '', content: '', date: today })
   showCreateModal.value = true
 }
@@ -124,7 +125,7 @@ const savedLabel = computed(() => {
         </UButton>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
+      <div class="flex-1 overflow-y-auto p-2 space-y-0.5" style="scrollbar-width: none;">
         <button
           v-for="note in notes"
           :key="note.id"

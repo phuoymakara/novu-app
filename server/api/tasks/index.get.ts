@@ -1,6 +1,6 @@
 import { db } from '../../db'
 import { tasks } from '../../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, asc, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -8,6 +8,6 @@ export default defineEventHandler(async (event) => {
 
   return db.select().from(tasks)
     .where(eq(tasks.userId, session.user.id))
-    .orderBy(desc(tasks.createdAt))
+    .orderBy(asc(tasks.position), desc(tasks.createdAt))
     .all()
 })
