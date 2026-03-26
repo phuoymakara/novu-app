@@ -235,18 +235,33 @@ const savedLabel = computed(() => {
     </main>
 
     <!-- Create Modal -->
-    <UModal v-model:open="showCreateModal" title="New Note">
+    <UModal v-model:open="showCreateModal" :ui="{ header: 'border-b-0 pb-0', body: 'pt-2' }">
+      <template #header>
+        <span class="text-xs font-medium text-muted-foreground uppercase tracking-widest">New Note</span>
+      </template>
+
       <template #body>
-        <UForm :state="form" class="space-y-4" @submit="createNote">
-          <UFormField label="Title" name="title" required>
-            <UInput v-model="form.title" placeholder="Note title" class="w-full" autofocus />
-          </UFormField>
-          <UFormField label="Date" name="date">
-            <AppDatePicker v-model="form.date" class="w-full" />
-          </UFormField>
-          <div class="flex justify-end gap-3 pt-2 border-t border-gray-200">
-            <UButton variant="ghost" color="neutral" @click="showCreateModal = false">Cancel</UButton>
-            <UButton type="submit" :loading="loading">Create note</UButton>
+        <UForm :state="form" @submit="createNote">
+          <!-- Title -->
+          <input
+            v-model="form.title"
+            placeholder="Note title"
+            autofocus
+            class="w-full bg-transparent outline-none text-lg font-semibold placeholder:text-muted-foreground/30 text-gray-900 dark:text-gray-100 mb-4"
+          />
+
+          <USeparator type="dashed" class="my-2"/>
+          <!-- Date row -->
+          <div class="flex items-center gap-3 mb-5">
+            <span class="text-xs text-muted-foreground/60 shrink-0">Date</span>
+            <div class="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+            <AppDatePicker v-model="form.date" class="flex-1" />
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-2">
+            <UButton variant="ghost" color="neutral" size="sm" @click="showCreateModal = false">Cancel</UButton>
+            <UButton type="submit" size="sm" :loading="loading">Create</UButton>
           </div>
         </UForm>
       </template>

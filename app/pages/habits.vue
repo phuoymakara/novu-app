@@ -9,14 +9,6 @@ const showModal = ref(false)
 const loading = ref(false)
 const form = reactive({ name: '', icon: 'i-lucide-check', color: 'primary' })
 
-const colorOptions = [
-  { label: 'Primary', value: 'primary' },
-  { label: 'Secondary', value: 'secondary' },
-  { label: 'Info', value: 'info' },
-  { label: 'Success', value: 'success' },
-  { label: 'Warning', value: 'warning' },
-  { label: 'Error', value: 'error' },
-]
 
 const colorMap: Record<string, string> = {
   primary: 'bg-primary',
@@ -178,37 +170,57 @@ const progress = computed(() => total.value ? Math.round((completedCount.value /
     </div>
 
     <!-- Create Modal -->
-    <UModal v-model:open="showModal" title="New Habit">
+    <UModal v-model:open="showModal" :ui="{ header: 'border-b-0 pb-0', body: 'pt-2' }">
+      <template #header>
+        <span class="text-xs font-medium text-muted-foreground uppercase tracking-widest">New Habit</span>
+      </template>
+
       <template #body>
-        <UForm :state="form" class="space-y-5" @submit="createHabit">
-          <UFormField label="Habit name" name="name" required>
-            <UInput v-model="form.name" placeholder="e.g. Drink 8 glasses of water" class="w-full" autofocus />
-          </UFormField>
+        <UForm :state="form" @submit="createHabit">
+          <!-- Name -->
+          <input
+            v-model="form.name"
+            placeholder="Name your habit..."
+            autofocus
+            class="w-full bg-transparent outline-none text-lg font-semibold placeholder:text-muted-foreground/30 text-gray-900 dark:text-gray-100 mb-4"
+          />
 
-          <UFormField label="Pick an icon" name="icon">
-            <div class="grid grid-cols-8 gap-1.5">
-              <button
-                v-for="icon in iconOptions"
-                :key="icon"
-                type="button"
-                class="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                :class="form.icon === icon
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-muted text-muted-foreground hover:bg-muted-foreground/20'"
-                @click="form.icon = icon"
-              >
-                <UIcon :name="icon" class="text-base" />
-              </button>
-            </div>
-          </UFormField>
+          <USeparator type="dashed" class="mb-4" />
 
-          <UFormField label="Color theme" name="color">
-            <USelect v-model="form.color" :items="colorOptions" class="w-full" />
-          </UFormField>
+          <!-- Icon picker -->
+          <p class="text-xs text-muted-foreground/50 mb-2">Icon</p>
+          <div class="grid grid-cols-8 gap-1 mb-5">
+            <button
+              v-for="icon in iconOptions"
+              :key="icon"
+              type="button"
+              class="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150"
+              :class="form.icon === icon
+                ? 'bg-primary/10 text-primary ring-1 ring-primary/25'
+                : 'text-muted-foreground/40 hover:bg-muted hover:text-foreground'"
+              @click="form.icon = icon"
+            >
+              <UIcon :name="icon" class="text-base" />
+            </button>
+          </div>
 
-          <div class="flex justify-end gap-3 pt-2 border-t border-gray-200">
-            <UButton variant="ghost" color="neutral" @click="showModal = false">Cancel</UButton>
-            <UButton type="submit" :loading="loading">Create habit</UButton>
+          <!-- Color swatches -->
+          <p class="text-xs text-muted-foreground/50 mb-2">Color</p>
+          <div class="flex gap-2.5 mb-5">
+            <button
+              v-for="(bg, key) in colorMap"
+              :key="key"
+              type="button"
+              class="w-5 h-5 rounded-full transition-all duration-150"
+              :class="[bg, form.color === key ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'opacity-40 hover:opacity-80 hover:scale-105']"
+              @click="form.color = key"
+            />
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-2">
+            <UButton variant="ghost" color="neutral" size="sm" @click="showModal = false">Cancel</UButton>
+            <UButton type="submit" size="sm" :loading="loading">Create</UButton>
           </div>
         </UForm>
       </template>
