@@ -20,6 +20,7 @@ logs
 
 # SQLite DB
 #sqlite.db
+backups/
 
 # Local env files
 .env

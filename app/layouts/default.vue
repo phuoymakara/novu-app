@@ -140,7 +140,7 @@ const userMenuItems = computed(() => [
               :to="item.to"
               class="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               :class="isActive(item.to)
-                ? 'text-primary'
+                ? 'text-primary bg-primary-100/25'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'"
             >
               <UIcon :name="item.icon" class="text-base flex-shrink-0" />

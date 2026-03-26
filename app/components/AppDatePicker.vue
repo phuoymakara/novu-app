@@ -47,18 +47,18 @@ function clearDate() {
 <template>
   <UPopover v-model:open="open" :disabled="disabled">
     <UButton
-      variant="outline"
+      variant="ghost"
       color="neutral"
-      class="w-full justify-start font-normal"
-      :class="!modelValue ? 'text-muted-foreground' : ''"
+      class="w-full justify-start font-normal px-2 h-8"
+      :class="!modelValue ? 'text-muted-foreground/50' : 'text-muted-foreground'"
       :disabled="disabled"
     >
-      <UIcon name="i-lucide-calendar" class="mr-2 flex-shrink-0" />
-      <span class="flex-1 text-left truncate">{{ displayValue || placeholder }}</span>
+      <UIcon name="i-lucide-calendar" class="mr-1.5 shrink-0 text-sm" />
+      <span class="flex-1 text-left truncate text-sm">{{ displayValue || placeholder }}</span>
       <UIcon
         v-if="modelValue"
         name="i-lucide-x"
-        class="ml-2 flex-shrink-0 opacity-50 hover:opacity-100"
+        class="ml-1 shrink-0 opacity-40 hover:opacity-80 text-xs"
         @click.stop="clearDate"
       />
     </UButton>
