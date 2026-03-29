@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!session.user) throw createError({ statusCode: 401, message: 'Unauthorized' })
 
   const config = useRuntimeConfig()
-  if (!config.vapidPublicKey || !config.vapidPrivateKey) {
+  if (!config.public.vapidPublicKey || !config.vapidPrivateKey) {
     throw createError({ statusCode: 500, message: 'VAPID keys not configured' })
   }
 
