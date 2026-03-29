@@ -40,12 +40,21 @@ export function useNotifications() {
         throw new Error('VAPID public key is not configured on the server.')
       }
 
-      const reg = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Service worker not ready after 10s')), 10000)
-        ),
-      ])
+      // On iOS the SW can take a long time to install/activate (precaching assets).
+      // Try the current controller's registration first, then fall back to ready.
+      let reg: ServiceWorkerRegistration | undefined
+      if (navigator.serviceWorker.controller) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        reg = regs.find(r => r.active === navigator.serviceWorker.controller)
+      }
+      if (!reg) {
+        reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Service worker is still setting up. Please wait a moment and try again.')), 30000)
+          ),
+        ])
+      }
 
       // Unsubscribe from any old subscription first (handles VAPID key rotation)
       const existing = await reg.pushManager.getSubscription()

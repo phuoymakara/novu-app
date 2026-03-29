@@ -54,7 +54,7 @@ export default defineNuxtConfig({
       ],
     },
     injectManifest: {
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      globPatterns: ['**/*.{js,css,html}'],
     },
     devOptions: {
       enabled: true,
