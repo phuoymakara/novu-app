@@ -68,9 +68,10 @@ export function useNotifications() {
     }
     catch (err: any) {
       isSubscribed.value = false
+      const name = err?.name ? `${err.name}: ` : ''
       const msg = err?.data?.message ?? err?.message ?? 'Unknown error'
       console.error('[Push] Subscription failed:', err)
-      toast.add({ title: 'Could not enable notifications', description: msg, color: 'error', duration: 8000 })
+      toast.add({ title: 'Could not enable notifications', description: name + msg, color: 'error', duration: 12000 })
     }
     finally {
       loading.value = false
