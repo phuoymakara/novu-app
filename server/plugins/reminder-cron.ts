@@ -48,6 +48,11 @@ async function checkAndSendReminders() {
     )
 
     const sent = results.filter(r => r.status === 'fulfilled').length
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error(`[Reminders] Push failed:`, result.reason?.statusCode, result.reason?.body || result.reason?.message || result.reason)
+      }
+    }
     console.log(`[Reminders] Sent "${reminder.type}" for task #${task.id} → ${sent}/${subs.length} devices`)
 
     db.update(taskReminders).set({ sentAt: now }).where(eq(taskReminders.id, reminder.id)).run()
