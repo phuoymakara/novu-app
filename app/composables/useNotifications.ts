@@ -7,6 +7,7 @@ export function useNotifications() {
     && 'Notification' in window
     && 'serviceWorker' in navigator
     && 'PushManager' in window
+    && window.isSecureContext // requires HTTPS or localhost
   )
   const permission = ref<NotificationPermission>('default')
   const isSubscribed = ref(false)
@@ -77,8 +78,12 @@ export function useNotifications() {
   }
 
   async function enable() {
+    if (loading.value) return // prevent double-tap
     if (!isSupported.value) {
-      toast.add({ title: 'Not supported', description: 'Push notifications are not supported on this browser.', color: 'warning' })
+      const reason = !window.isSecureContext
+        ? 'Push notifications require HTTPS. Access the app via your HTTPS domain.'
+        : 'Push notifications are not supported on this browser.'
+      toast.add({ title: 'Not supported', description: reason, color: 'warning' })
       return
     }
     const result = await Notification.requestPermission()

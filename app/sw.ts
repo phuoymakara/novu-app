@@ -1,10 +1,13 @@
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+declare let self: ServiceWorkerGlobalScope & { __WB_MANIFEST: { url: string; revision: string | null }[] }
 
-declare let self: ServiceWorkerGlobalScope
+// Force activate immediately — skip waiting for old SW
+self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('activate', event => event.waitUntil(self.clients.claim()))
 
-cleanupOutdatedCaches()
-precacheAndRoute(self.__WB_MANIFEST)
+// Required reference so vite-pwa injects the asset manifest (enables PWA caching)
+void self.__WB_MANIFEST
 
+// Push: show notification
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   event.waitUntil(
@@ -17,13 +20,14 @@ self.addEventListener('push', (event) => {
   )
 })
 
+// Notification click: focus existing window or open new one
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/'
+  const url: string = event.notification.data?.url || '/'
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if ('focus' in client) return client.focus()
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return (client as WindowClient).focus()
       }
       return self.clients.openWindow(url)
     })
