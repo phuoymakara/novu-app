@@ -44,7 +44,7 @@ function openEdit(task: any) {
     description: task.description ?? '',
     priority: task.priority,
     dueDate: task.dueDate ?? '',
-    remindAt: task.remindAt ? task.remindAt.slice(0, 16) : '',
+    remindAt: task.remindAt ?? '',
   })
   reminderEnabled.value = !!task.remindAt
   showModal.value = true

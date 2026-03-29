@@ -27,10 +27,10 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || '',
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || 'DXXKJ7NqvWU_9ybHtdW1xGzZyOPLsbP5LSa9LDVGjlY',
     vapidEmail: process.env.VAPID_EMAIL || 'mailto:admin@dailyos.app',
     public: {
-      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '',
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || 'BBax1-wooZuo1g9eVZR6cKfoFBMPNLipUhIM0ku48Awi8zOit-flYMjcPT2hV3L89Dn9HD1iz25oGcSM34k-qnA',
     },
   },
 
