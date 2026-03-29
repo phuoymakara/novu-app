@@ -65,16 +65,34 @@ sqlite.exec(`
 try { sqlite.exec('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0') } catch {}
 try { sqlite.exec('ALTER TABLE tasks ADD COLUMN remind_at TEXT') } catch {}
 
-sqlite.exec(`
-  CREATE TABLE IF NOT EXISTS task_reminders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL CHECK(type IN ('early_morning', 'before_15min', 'on_time', 'evening_check')),
-    remind_at TEXT NOT NULL,
-    sent_at TEXT
-  );
-`)
+// Migrate task_reminders: drop CHECK constraint if it's missing newer types
+const reminderTableSql = (sqlite.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='task_reminders'`).get() as { sql: string } | undefined)?.sql ?? ''
+if (reminderTableSql.includes('CHECK')) {
+  sqlite.exec(`
+    CREATE TABLE task_reminders_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      remind_at TEXT NOT NULL,
+      sent_at TEXT
+    );
+    INSERT INTO task_reminders_new SELECT id, task_id, user_id, type, remind_at, sent_at FROM task_reminders;
+    DROP TABLE task_reminders;
+    ALTER TABLE task_reminders_new RENAME TO task_reminders;
+  `)
+} else {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS task_reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      remind_at TEXT NOT NULL,
+      sent_at TEXT
+    );
+  `)
+}
 
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS push_subscriptions (

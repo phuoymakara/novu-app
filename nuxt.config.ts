@@ -18,6 +18,17 @@ export default defineNuxtConfig({
     },
   },
 
+  app: {
+    head: {
+      style: [
+        {
+          // Set background instantly before any JS/CSS loads to prevent flash
+          innerHTML: 'body{background:#ffffff}@media(prefers-color-scheme:dark){body{background:#0c0a09}}',
+        },
+      ],
+    },
+  },
+
   css: ['~/assets/css/main.css'],
 
   vite: {
