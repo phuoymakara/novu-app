@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { loggedIn, user, clear } = useUserSession()
 const colorMode = useColorMode()
+const { isSupported: notifSupported, permission, isSubscribed, enable: enableNotifications } = useNotifications()
 const route = useRoute()
 const { openConfirm } = useConfirm()
 const { currentColor, currentNeutral, setColor, setNeutral, initTheme, primaryColors, neutralColors } = useTheme()
@@ -184,6 +185,19 @@ const userMenuItems = computed(() => [
               size="sm"
               @click="colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'"
             />
+            <UTooltip
+              v-if="notifSupported"
+              :text="isSubscribed ? 'Notifications on' : permission === 'denied' ? 'Notifications blocked' : 'Enable notifications'"
+            >
+              <UButton
+                :icon="isSubscribed ? 'i-lucide-bell' : 'i-lucide-bell-off'"
+                :color="isSubscribed ? 'primary' : 'neutral'"
+                variant="ghost"
+                size="sm"
+                :disabled="permission === 'denied'"
+                @click="enableNotifications"
+              />
+            </UTooltip>
             <UButton
               icon="i-lucide-log-out"
               color="error"

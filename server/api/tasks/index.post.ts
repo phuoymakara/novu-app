@@ -1,5 +1,6 @@
 import { db } from '../../db'
-import { tasks } from '../../db/schema'
+import { tasks, taskReminders } from '../../db/schema'
+import { generateReminderRows } from '../../utils/reminder-schedule'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -15,7 +16,15 @@ export default defineEventHandler(async (event) => {
     priority: body.priority ?? 'medium',
     status: body.status ?? 'todo',
     dueDate: body.dueDate,
+    remindAt: body.remindAt || null,
   }).returning().all()
+
+  if (body.remindAt) {
+    const rows = generateReminderRows(task.id, session.user.id, new Date(body.remindAt))
+    for (const row of rows) {
+      db.insert(taskReminders).values(row).run()
+    }
+  }
 
   return task
 })

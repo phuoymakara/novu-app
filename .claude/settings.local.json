@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn add:*)",
+      "Bash(node -e \"require\\(''./node_modules/web-push/package.json''\\)\")",
+      "Bash(node -e \"require\\(''./node_modules/@vite-pwa/nuxt/package.json''\\)\")"
+    ]
+  }
+}

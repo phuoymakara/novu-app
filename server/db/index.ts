@@ -63,3 +63,26 @@ sqlite.exec(`
 
 // Add position column to existing DBs (no-op if already exists)
 try { sqlite.exec('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0') } catch {}
+try { sqlite.exec('ALTER TABLE tasks ADD COLUMN remind_at TEXT') } catch {}
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS task_reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK(type IN ('early_morning', 'before_15min', 'on_time', 'evening_check')),
+    remind_at TEXT NOT NULL,
+    sent_at TEXT
+  );
+`)
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at INTEGER
+  );
+`)

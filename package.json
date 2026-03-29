@@ -6,6 +6,7 @@
     "prebuild": "node scripts/backup-db.js",
     "build": "nuxt build",
     "rollback": "node scripts/rollback-db.js",
+    "gen:vapid": "node scripts/generate-vapid.js",
     "dev": "nuxt dev",
     "start": "nuxt start -p 5001",
     "generate": "nuxt generate",
@@ -15,18 +16,23 @@
   "dependencies": {
     "@nuxt/ui": "^3.3.7",
     "@pinia/nuxt": "^0.11.3",
+    "@vite-pwa/nuxt": "^1.1.1",
     "@vueuse/core": "^14.2.1",
     "@vueuse/nuxt": "^14.2.1",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.1",
+    "node-cron": "^4.2.1",
     "nuxt": "^4.4.2",
     "nuxt-auth-utils": "^0.5.29",
     "pinia": "^3.0.4",
     "vue": "^3.5.30",
-    "vue-router": "^5.0.3"
+    "vue-router": "^5.0.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/node-cron": "^3.0.11",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10"
   },
   "packageManager": "yarn@1.22.19+sha512.ff4579ab459bb25aa7c0ff75b62acebe576f6084b36aa842971cf250a5d8c6cd3bc9420b22ce63c7f93a0857bc6ef29291db39c3e7a23aab5adfd5a4dd6c5d71"

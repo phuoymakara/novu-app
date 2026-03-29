@@ -7,7 +7,8 @@ const { data: tasks, refresh } = await useFetch('/api/tasks')
 
 const showModal = ref(false)
 const editingTask = ref<any>(null)
-const form = reactive({ title: '', description: '', priority: 'medium', dueDate: '' })
+const form = reactive({ title: '', description: '', priority: 'medium', dueDate: '', remindAt: '' })
+const reminderEnabled = ref(false)
 const loading = ref(false)
 
 const draggingTask = ref<any>(null)
@@ -31,7 +32,8 @@ const today = new Date().toISOString().slice(0, 10)
 
 function openCreate() {
   editingTask.value = null
-  Object.assign(form, { title: '', description: '', priority: 'medium', dueDate: today })
+  Object.assign(form, { title: '', description: '', priority: 'medium', dueDate: today, remindAt: '' })
+  reminderEnabled.value = false
   showModal.value = true
 }
 
@@ -42,7 +44,9 @@ function openEdit(task: any) {
     description: task.description ?? '',
     priority: task.priority,
     dueDate: task.dueDate ?? '',
+    remindAt: task.remindAt ? task.remindAt.slice(0, 16) : '',
   })
+  reminderEnabled.value = !!task.remindAt
   showModal.value = true
 }
 
@@ -61,12 +65,16 @@ function confirmDelete(task: any) {
 async function save() {
   loading.value = true
   try {
+    const payload = {
+      ...form,
+      remindAt: reminderEnabled.value && form.remindAt ? form.remindAt : null,
+    }
     if (editingTask.value) {
-      await $fetch(`/api/tasks/${editingTask.value.id}`, { method: 'PATCH', body: form })
+      await $fetch(`/api/tasks/${editingTask.value.id}`, { method: 'PATCH', body: payload })
       toast.add({ title: 'Task updated', color: 'success' })
     }
     else {
-      await $fetch('/api/tasks', { method: 'POST', body: form })
+      await $fetch('/api/tasks', { method: 'POST', body: payload })
       toast.add({ title: 'Task created', color: 'success' })
     }
     showModal.value = false
@@ -252,10 +260,14 @@ const priorities = [
                 {{ task.description }}
               </p>
 
-              <div v-if="task.dueDate" class="mt-2 ml-3.5">
-                <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
+              <div v-if="task.dueDate || task.remindAt" class="mt-2 ml-3.5 flex items-center gap-2 flex-wrap">
+                <span v-if="task.dueDate" class="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
                   <UIcon name="i-lucide-calendar" class="text-xs" />
                   {{ task.dueDate }}
+                </span>
+                <span v-if="task.remindAt" class="inline-flex items-center gap-1 text-[11px] text-primary/70">
+                  <UIcon name="i-lucide-bell" class="text-xs" />
+                  {{ new Date(task.remindAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
                 </span>
               </div>
             </div>
@@ -304,7 +316,7 @@ const priorities = [
           <div class="border-t border-gray-100 dark:border-gray-800 mb-4" />
 
           <!-- Meta row -->
-          <div class="flex items-center gap-4 mb-5">
+          <div class="flex items-center gap-4 mb-3">
             <!-- Priority dots -->
             <div class="flex items-center gap-1.5">
               <button
@@ -326,7 +338,35 @@ const priorities = [
 
             <!-- Due date -->
             <AppDatePicker v-model="form.dueDate" placeholder="Due date" class="flex-1" />
+
+            <div class="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+
+            <!-- Reminder bell toggle -->
+            <UTooltip :text="reminderEnabled ? 'Remove reminder' : 'Set reminder'">
+              <button
+                type="button"
+                class="flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+                :class="reminderEnabled ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'"
+                @click="reminderEnabled = !reminderEnabled; if (!reminderEnabled) form.remindAt = ''"
+              >
+                <UIcon :name="reminderEnabled ? 'i-lucide-bell' : 'i-lucide-bell-off'" class="text-base" />
+              </button>
+            </UTooltip>
           </div>
+
+          <!-- Reminder datetime picker -->
+          <Transition name="slide-down">
+            <div v-if="reminderEnabled" class="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-bell" class="text-primary text-sm shrink-0" />
+                <span class="text-xs font-medium text-primary">Reminder time</span>
+              </div>
+              <AppDateTimePicker v-model="form.remindAt" placeholder="Pick date & time" />
+              <p class="text-[11px] text-muted-foreground">
+                You'll get 4 reminders: early morning, 15 min before, on time, and an evening check-in.
+              </p>
+            </div>
+          </Transition>
 
           <!-- Actions -->
           <div class="flex justify-end gap-2">
@@ -340,3 +380,15 @@ const priorities = [
     </UModal>
   </div>
 </template>
+
+<style scoped>
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

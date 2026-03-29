@@ -1,6 +1,7 @@
 import { db } from '../../db'
-import { tasks } from '../../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { tasks, taskReminders } from '../../db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
+import { generateReminderRows } from '../../utils/reminder-schedule'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -16,5 +17,20 @@ export default defineEventHandler(async (event) => {
     .all()
 
   if (!task) throw createError({ statusCode: 404, message: 'Task not found' })
+
+  // Regenerate reminders whenever remindAt is explicitly included in the update
+  if ('remindAt' in body) {
+    db.delete(taskReminders)
+      .where(and(eq(taskReminders.taskId, id), isNull(taskReminders.sentAt)))
+      .run()
+
+    if (body.remindAt) {
+      const rows = generateReminderRows(id, session.user.id, new Date(body.remindAt))
+      for (const row of rows) {
+        db.insert(taskReminders).values(row).run()
+      }
+    }
+  }
+
   return task
 })
