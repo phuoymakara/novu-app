@@ -34,6 +34,8 @@ async function checkAndSendReminders() {
     const subs = db.select().from(pushSubscriptions)
       .where(eq(pushSubscriptions.userId, reminder.userId)).all()
 
+    console.log(`[Reminders] userId=${reminder.userId} has ${subs.length} subscription(s)`)
+
     const msg = REMINDER_MESSAGES[reminder.type as ReminderType](task.title)
 
     const results = await Promise.allSettled(
