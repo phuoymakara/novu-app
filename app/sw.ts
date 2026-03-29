@@ -1,13 +1,14 @@
-declare let self: ServiceWorkerGlobalScope & { __WB_MANIFEST: { url: string; revision: string | null }[] }
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
-// Force activate immediately — skip waiting for old SW
+declare let self: ServiceWorkerGlobalScope
+
+// Force activate immediately — don't wait for old tabs to close
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', event => event.waitUntil(self.clients.claim()))
 
-// Required reference so vite-pwa injects the asset manifest (enables PWA caching)
-void self.__WB_MANIFEST
+cleanupOutdatedCaches()
+precacheAndRoute(self.__WB_MANIFEST)
 
-// Push: show notification
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   event.waitUntil(
@@ -20,7 +21,6 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Notification click: focus existing window or open new one
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url: string = event.notification.data?.url || '/'
