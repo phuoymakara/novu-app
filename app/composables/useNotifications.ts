@@ -1,5 +1,7 @@
 export function useNotifications() {
   const config = useRuntimeConfig()
+  const toast = useToast()
+
   const isSupported = computed(() =>
     import.meta.client
     && 'Notification' in window
@@ -20,26 +22,54 @@ export function useNotifications() {
   async function checkSubscription() {
     if (!isSupported.value) return
     permission.value = Notification.permission
-    const reg = await navigator.serviceWorker.ready
-    const sub = await reg.pushManager.getSubscription()
-    isSubscribed.value = !!sub
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      isSubscribed.value = !!sub
+    }
+    catch (e) {
+      console.warn('[Push] Could not check subscription:', e)
+    }
   }
 
   async function subscribe() {
     loading.value = true
     try {
-      const reg = await navigator.serviceWorker.ready
+      if (!config.public.vapidPublicKey) {
+        throw new Error('VAPID public key is not configured on the server.')
+      }
+
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Service worker not ready after 10s')), 10000)
+        ),
+      ])
+
+      // Unsubscribe from any old subscription first (handles VAPID key rotation)
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
+
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(config.public.vapidPublicKey),
       })
+
       const json = sub.toJSON()
       await $fetch('/api/push/subscribe', {
         method: 'POST',
         body: { endpoint: json.endpoint, keys: json.keys },
       })
+
       isSubscribed.value = true
       permission.value = 'granted'
+      toast.add({ title: 'Notifications enabled', color: 'success' })
+    }
+    catch (err: any) {
+      isSubscribed.value = false
+      const msg = err?.data?.message ?? err?.message ?? 'Unknown error'
+      console.error('[Push] Subscription failed:', msg)
+      toast.add({ title: 'Could not enable notifications', description: msg, color: 'error' })
     }
     finally {
       loading.value = false
@@ -47,17 +77,31 @@ export function useNotifications() {
   }
 
   async function enable() {
-    if (!isSupported.value) return
+    if (!isSupported.value) {
+      toast.add({ title: 'Not supported', description: 'Push notifications are not supported on this browser.', color: 'warning' })
+      return
+    }
     const result = await Notification.requestPermission()
     permission.value = result
-    if (result === 'granted') await subscribe()
+    if (result === 'granted') {
+      await subscribe()
+    }
+    else if (result === 'denied') {
+      toast.add({ title: 'Notifications blocked', description: 'Enable notifications in your browser settings.', color: 'warning' })
+    }
   }
 
   async function sendTest() {
-    await $fetch('/api/push/send', {
-      method: 'POST',
-      body: { title: 'DailyOS', body: 'Notifications are working!', url: '/' },
-    })
+    try {
+      await $fetch('/api/push/send', {
+        method: 'POST',
+        body: { title: 'DailyOS', body: 'Notifications are working!', url: '/' },
+      })
+      toast.add({ title: 'Test sent', color: 'success' })
+    }
+    catch (err: any) {
+      toast.add({ title: 'Send failed', description: err?.data?.message, color: 'error' })
+    }
   }
 
   onMounted(checkSubscription)
