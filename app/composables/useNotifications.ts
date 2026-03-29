@@ -78,6 +78,7 @@ export function useNotifications() {
   }
 
   async function enable() {
+    console.log('=====>Enabling notifications...', isSupported.value, 'Secure context:', window.isSecureContext);
     if (loading.value) return // prevent double-tap
     if (!isSupported.value) {
       const reason = !window.isSecureContext

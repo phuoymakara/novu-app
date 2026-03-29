@@ -149,6 +149,26 @@ const userMenuItems = computed(() => [
             </NuxtLink>
           </nav>
 
+          <!-- Notifications (desktop) -->
+          <div v-if="notifSupported" class="px-3 pb-1">
+            <UTooltip
+              :text="isSubscribed ? 'Notifications on' : permission === 'denied' ? 'Notifications blocked — check browser settings' : 'Enable push notifications'"
+              :content="{ side: 'right' }"
+            >
+              <button
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                :class="isSubscribed
+                  ? 'text-primary bg-primary/10 hover:bg-primary/15'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'"
+                :disabled="permission === 'denied'"
+                @click="enableNotifications"
+              >
+                <UIcon :name="isSubscribed ? 'i-lucide-bell' : 'i-lucide-bell-off'" class="text-base shrink-0" />
+                <span>{{ isSubscribed ? 'Notifications on' : 'Enable notifications' }}</span>
+              </button>
+            </UTooltip>
+          </div>
+
           <!-- User section with dropdown -->
           <div class="p-2 border-t border-gray-200">
             <UDropdownMenu
