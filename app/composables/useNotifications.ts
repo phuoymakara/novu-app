@@ -69,8 +69,8 @@ export function useNotifications() {
     catch (err: any) {
       isSubscribed.value = false
       const msg = err?.data?.message ?? err?.message ?? 'Unknown error'
-      console.error('[Push] Subscription failed:', msg)
-      toast.add({ title: 'Could not enable notifications', description: msg, color: 'error' })
+      console.error('[Push] Subscription failed:', err)
+      toast.add({ title: 'Could not enable notifications', description: msg, color: 'error', duration: 8000 })
     }
     finally {
       loading.value = false
@@ -78,7 +78,6 @@ export function useNotifications() {
   }
 
   async function enable() {
-    console.log('=====>Enabling notifications...', isSupported.value, 'Secure context:', window.isSecureContext);
     if (loading.value) return // prevent double-tap
     if (!isSupported.value) {
       const reason = !window.isSecureContext
@@ -87,6 +86,20 @@ export function useNotifications() {
       toast.add({ title: 'Not supported', description: reason, color: 'warning' })
       return
     }
+
+    // iOS only supports push for installed PWAs (added to Home Screen)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || !!(navigator as any).standalone
+    if (isIOS && !isInstalled) {
+      toast.add({
+        title: 'Install app first',
+        description: 'On iOS, tap Share → "Add to Home Screen", then open DailyOS from your Home Screen to enable notifications.',
+        color: 'warning',
+        duration: 8000,
+      })
+      return
+    }
+
     const result = await Notification.requestPermission()
     permission.value = result
     if (result === 'granted') {
